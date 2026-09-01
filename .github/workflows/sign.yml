@@ -32,22 +32,25 @@ jobs:
             --bundle pass.sigstore.json \
             --yes
 
-      - name: Verify original file
+      - name: Verify original password.txt
         run: |
           cosign verify-blob password.txt \
             --bundle pass.sigstore.json \
             --certificate-identity="https://github.com/balaguru-k/cloud-monitoring/.github/workflows/sign.yml@refs/heads/main" \
             --certificate-oidc-issuer="https://token.actions.githubusercontent.com"
 
+      - name: Calculate original SHA256
+        run: |
+          sha256sum password.txt
+
       - name: Tamper with password.txt
         run: |
-          echo "Tampering with password.txt..."
           echo "HACKED_PASSWORD_456" > password.txt
 
           echo "Modified password.txt:"
           cat password.txt
 
-      - name: Verify modified file - MUST FAIL
+      - name: Verify modified password.txt
         run: |
           set +e
 
@@ -58,10 +61,11 @@ jobs:
 
           RESULT=$?
 
-          if [ $RESULT -eq 0 ]; then
-            echo "ERROR: Modified file was incorrectly verified!"
-            exit 1
-          else
+          if [ $RESULT -ne 0 ]; then
             echo "SUCCESS: Tampering detected!"
-            echo "The modified password.txt does NOT match the signed bundle."
+            exit 0
+          else
+            echo "WARNING: Cosign still reports Verified OK."
+            echo "The bundle verification is not being used as a content-integrity check here."
+            exit 1
           fi
