@@ -36,8 +36,8 @@ jobs:
         run: |
           cosign verify-blob password.txt \
             --bundle pass.sigstore.json \
-            --certificate-identity="balaguru2728@gmail.com" \
-            --certificate-oidc-issuer="https://accounts.google.com"
+            --certificate-identity="https://github.com/balaguru-k/cloud-monitoring/.github/workflows/sign.yml@refs/heads/main" \
+            --certificate-oidc-issuer="https://token.actions.githubusercontent.com"
 
       - name: Tamper with password.txt
         run: |
@@ -53,15 +53,15 @@ jobs:
 
           cosign verify-blob password.txt \
             --bundle pass.sigstore.json \
-            --certificate-identity="balaguru2728@gmail.com" \
-            --certificate-oidc-issuer="https://accounts.google.com"
+            --certificate-identity="https://github.com/balaguru-k/cloud-monitoring/.github/workflows/sign.yml@refs/heads/main" \
+            --certificate-oidc-issuer="https://token.actions.githubusercontent.com"
 
           RESULT=$?
 
           if [ $RESULT -eq 0 ]; then
-            echo "❌ ERROR: Modified file was incorrectly verified!"
+            echo "ERROR: Modified file was incorrectly verified!"
             exit 1
           else
-            echo "✅ SUCCESS: Tampering detected!"
+            echo "SUCCESS: Tampering detected!"
             echo "The modified password.txt does NOT match the signed bundle."
           fi
