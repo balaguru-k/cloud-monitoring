@@ -45,7 +45,7 @@ jobs:
 
       - name: Tamper with password.txt
         run: |
-          echo "HACKED_PASSWORD_456" > password.txt
+          echo "Seucre@2026" > password.txt
 
           echo "Modified password.txt:"
           cat password.txt
