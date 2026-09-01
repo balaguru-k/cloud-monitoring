@@ -1,34 +1,67 @@
-name: Sign Test File with Sigstore
+name: Cosign Sign and Tamper Test
 
 on:
+  push:
+    branches:
+      - main
   workflow_dispatch:
 
 permissions:
-  contents: read
   id-token: write
+  contents: read
 
 jobs:
-  sign:
+  sign-and-test:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
 
       - name: Install Cosign
-        uses: sigstore/cosign-installer@v4.0.0
+        uses: sigstore/cosign-installer@v3
 
-      - name: Check Cosign version
-        run: cosign version
+      - name: Show original file
+        run: |
+          echo "Original password.txt:"
+          cat password.txt
 
       - name: Sign password.txt
         run: |
           cosign sign-blob password.txt \
-            --bundle password.sigstore.json \
+            --bundle pass.sigstore.json \
             --yes
 
-      - name: Upload Sigstore bundle
-        uses: actions/upload-artifact@v6
-        with:
-          name: sigstore-bundle
-          path: password.sigstore.json
+      - name: Verify original file
+        run: |
+          cosign verify-blob password.txt \
+            --bundle pass.sigstore.json \
+            --certificate-identity="balaguru2728@gmail.com" \
+            --certificate-oidc-issuer="https://accounts.google.com"
+
+      - name: Tamper with password.txt
+        run: |
+          echo "Tampering with password.txt..."
+          echo "HACKED_PASSWORD_456" > password.txt
+
+          echo "Modified password.txt:"
+          cat password.txt
+
+      - name: Verify modified file - MUST FAIL
+        run: |
+          set +e
+
+          cosign verify-blob password.txt \
+            --bundle pass.sigstore.json \
+            --certificate-identity="balaguru2728@gmail.com" \
+            --certificate-oidc-issuer="https://accounts.google.com"
+
+          RESULT=$?
+
+          if [ $RESULT -eq 0 ]; then
+            echo "❌ ERROR: Modified file was incorrectly verified!"
+            exit 1
+          else
+            echo "✅ SUCCESS: Tampering detected!"
+            echo "The modified password.txt does NOT match the signed bundle."
+          fi
